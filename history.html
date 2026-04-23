@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports History | OralScan AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Desktop Header -->
+        <div class="header-nav">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <a href="{{ url_for('profile') }}" class="header-avatar" title="My Profile">
+                    {{ '👩' if user_gender == 'Female' else '👨' if user_gender == 'Male' else '👤' }}
+                </a>
+                <a href="{{ url_for('welcome') }}" class="header-nav-brand">OralScan <span class="brand-ai">AI</span></a>
+            </div>
+            <div class="header-nav-links">
+                <a href="{{ url_for('dashboard') }}" class="header-nav-item"><i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Home</a>
+                <a href="{{ url_for('form_steps') }}" class="header-nav-item"><i data-lucide="plus-square" style="width: 18px; height: 18px;"></i> Assess</a>
+                <a href="{{ url_for('history') }}" class="header-nav-item active"><i data-lucide="history" style="width: 18px; height: 18px;"></i> History</a>
+                <a href="{{ url_for('logout') }}" class="header-nav-item" style="color: var(--danger);"><i data-lucide="log-out" style="width: 18px; height: 18px;"></i> Logout</a>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Mobile Header back button -->
+            <div style="padding-bottom: 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-light); margin-bottom: 32px;">
+                <a href="{{ url_for('dashboard') }}" style="color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 8px;"><i data-lucide="chevron-left" style="width: 20px; height: 20px;"></i> Back</a>
+                <span style="font-weight: 700; font-size: 27px;">Medical History</span>
+                <div style="width: 24px; height: 24px;"></div>
+            </div>
+
+            <h2 style="font-size: 36px; margin-bottom: 32px;">Previous Scans</h2>
+
+            {% if not reports %}
+            <div class="glass-card" style="text-align: center; padding: 60px 20px;">
+                <div style="width: 80px; height: 80px; background: var(--bg-dark); border: 1px solid var(--border-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                    <i data-lucide="file-text" style="color: var(--primary); width: 40px; height: 40px;"></i>
+                </div>
+                <h3 style="font-size: 30px; margin-bottom: 12px;">No Reports Found</h3>
+                <p style="color: var(--text-muted); font-size: 22px; margin-bottom: 32px;">Complete an assessment to see your results here.</p>
+                <a href="{{ url_for('form_steps') }}" class="btn-primary" style="display: inline-block; text-decoration: none; width: auto;">Start Assessment</a>
+            </div>
+            {% else %}
+                <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
+                    {% for report in reports %}
+                    <div class="glass-card" style="padding: 24px; margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                            <div>
+                                <p style="font-size: 18px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">{{ report.report_date.strftime('%b %d, %Y • %H:%M') if report.report_date else 'Date N/A' }}</p>
+                                <h3 style="font-size: 33px; font-weight: 800; margin-top: 8px; color: var(--text-main);">{{ report.result }}</h3>
+                            </div>
+                            <div style="background: var(--bg-dark); border: 1px solid var(--border-light); padding: 6px 14px; border-radius: 12px; font-size: 19px; font-weight: 700; color: #{{ 'ef4444' if report.risk_level == 'High' else '22c55e' if report.risk_level == 'Low' else 'f59e0b' }};">
+                                {{ report.risk_level }} Risk
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <span style="font-size: 19px; color: var(--text-muted); font-weight: 700; margin-bottom: 12px; display: block;">Regional Findings:</span>
+                            <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: thin;">
+                                {% for region in report.regions_list %}
+                                <div style="flex: 0 0 120px; text-align: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 12px; border: 1px solid var(--border-light);">
+                                    <img src="{{ url_for('uploaded_file', filename=region.heatmap) }}" style="width: 100px; height: 100px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-light); margin-bottom: 8px;">
+                                    <div style="font-size: 14px; color: {{ region.color or '#fff' }}; font-weight: 800; margin-bottom: 4px;">{{ region.result or 'Scan' }}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted); line-height: 1.2;">
+                                        Conf: {{ region.confidence or 0 }}%<br>
+                                        Thresh: {{ region.threshold or 0 }}%
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 20px; margin-bottom: 20px; align-items: center;">
+                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px;">
+                                <span style="font-size: 22px; color: var(--text-muted);">Avg. Confidence: <strong style="color: var(--text-main);">{{ report.confidence }}%</strong></span>
+                                <span style="font-size: 22px; color: var(--text-muted);">Patient: <strong style="color: var(--text-main);">{{ report.full_name }}</strong></span>
+                            </div>
+                        </div>
+
+                        <div style="padding-top: 16px; border-top: 1px solid var(--border-light); font-size: 21px; color: var(--text-muted); line-height: 1.6;">
+                            <p style="margin-bottom: 8px;"><strong style="color: var(--text-main);">Symptoms:</strong> {{ report.symptoms or 'None' }}</p>
+                            <p><strong style="color: var(--text-main);">Mouth Opening:</strong> {{ report.mouth_opening }}</p>
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; gap: 16px;">
+                            <a href="{{ url_for('download_report', report_id=report.id) }}" target="_blank" class="btn-primary" style="flex: 1; text-align: center; text-decoration: none; padding: 16px; font-size: 20px;"><i data-lucide="download" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: bottom;"></i> Download PDF</a>
+                            
+                            <form action="{{ url_for('delete_report', report_id=report.id) }}" method="POST" style="flex: 1; display: flex;" onsubmit="return confirm('Are you sure you want to delete this scan? This cannot be undone.');">
+                                <button type="submit" class="btn-secondary" style="width: 100%; border-color: var(--danger); color: var(--danger); padding: 16px; font-size: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+                                    <i data-lucide="trash-2" style="width: 20px; height: 20px;"></i> Delete Scan
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Mobile Bottom Navigation -->
+        <div class="bottom-nav">
+            <a href="{{ url_for('dashboard') }}" class="nav-item">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ url_for('form_steps') }}" class="nav-item">
+                <i data-lucide="plus-square"></i>
+                <span>Assess</span>
+            </a>
+            <a href="{{ url_for('history') }}" class="nav-item active">
+                <i data-lucide="history"></i>
+                <span>History</span>
+            </a>
+        </div>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up | OralScan AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Desktop Header -->
+        <div class="header-nav">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                {% if session.get('user_id') %}
+                <a href="{{ url_for('profile') }}" class="header-avatar" title="My Profile">
+                    {{ '👩' if session.get('user_gender') == 'Female' else '👨' if session.get('user_gender') == 'Male' else '👤' }}
+                </a>
+                {% endif %}
+                <a href="{{ url_for('welcome') }}" class="header-nav-brand">OralScan <span class="brand-ai">AI</span></a>
+            </div>
+            <div class="header-nav-links">
+                {% if session.get('user_id') %}
+                <a href="{{ url_for('dashboard') }}" class="header-nav-item"><i data-lucide="layout-dashboard" style="width: 20px; height: 20px;"></i> Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="header-nav-item" style="color: var(--danger);"><i data-lucide="log-out" style="width: 20px; height: 20px;"></i> Logout</a>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="header-nav-item"><i data-lucide="log-in" style="width: 20px; height: 20px;"></i> Login</a>
+                <a href="{{ url_for('signup') }}" class="header-nav-item"><i data-lucide="user-plus" style="width: 20px; height: 20px;"></i> Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="content-wrapper" style="max-width: 800px; padding-top: 80px;">
+            <div style="margin-bottom: 40px; text-align: center;">
+                <h1 style="font-size: 54px; font-weight: 800; margin-bottom: 12px;">Create Account</h1>
+                <p style="color: var(--text-muted); font-size: 27px;">Join OralScan AI to securely track and analyze your scans.</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div style="background: #fee2e2; border: 1px solid #fca5a5; color: #ef4444; padding: 16px; border-radius: 12px; font-size: 21px; margin-bottom: 24px;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="glass-card">
+                <form action="{{ url_for('signup') }}" method="POST">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 21px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Full Name</label>
+                        <input type="text" name="name" class="input-field" placeholder="John Doe" required>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 21px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Email Address</label>
+                        <input type="email" name="email" class="input-field" placeholder="name@example.com" required>
+                    </div>
+                    <div style="margin-bottom: 32px;">
+                        <label style="display: block; font-size: 21px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Password</label>
+                        <input type="password" name="password" class="input-field" placeholder="••••••••" required>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Create Account</button>
+                </form>
+            </div>
+
+            <div style="text-align: center; margin-top: 24px;">
+                <p style="font-size: 22px; color: var(--text-muted);">
+                    Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign in</a>
+                </p>
+            </div>
+            
+            <div style="margin-top: 40px; text-align: center;">
+                <i data-lucide="shield-check" style="width: 24px; height: 24px; color: var(--primary); margin-bottom: 8px; opacity: 0.8;"></i>
+                <p style="font-size: 18px; color: var(--text-muted); font-weight: 600;">SECURE MEDICAL GRADE ENCRYPTION</p>
+            </div>
+        </div>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

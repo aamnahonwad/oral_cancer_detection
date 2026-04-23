@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | OralScan AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Desktop Header -->
+        <div class="header-nav">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <a href="{{ url_for('profile') }}" class="header-avatar" title="My Profile">
+                    {{ '👩' if user_gender == 'Female' else '👨' if user_gender == 'Male' else '👤' }}
+                </a>
+                <a href="{{ url_for('welcome') }}" class="header-nav-brand">OralScan <span class="brand-ai">AI</span></a>
+            </div>
+            <div class="header-nav-links">
+                <a href="{{ url_for('dashboard') }}" class="header-nav-item active"><i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Home</a>
+                <a href="{{ url_for('form_steps') }}" class="header-nav-item"><i data-lucide="plus-square" style="width: 18px; height: 18px;"></i> Assess</a>
+                <a href="{{ url_for('history') }}" class="header-nav-item"><i data-lucide="history" style="width: 18px; height: 18px;"></i> History</a>
+                <a href="{{ url_for('logout') }}" class="header-nav-item" style="color: var(--danger);"><i data-lucide="log-out" style="width: 18px; height: 18px;"></i> Logout</a>
+            </div>
+        </div>
+
+        <div class="content-wrapper content-wrapper-dashboard">
+            <!-- Header for mobile / greeting -->
+            <div style="padding-bottom: 24px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <a href="{{ url_for('profile') }}" class="header-avatar" style="width: 50px; height: 50px; font-size: 36px; text-decoration: none;">
+                        {{ '👩' if user_gender == 'Female' else '👨' if user_gender == 'Male' else '👤' }}
+                    </a>
+                    <div>
+                        <span style="font-weight: 800; font-size: 33px; display: block;">Hello, {{ user_name.split()[0] if user_name else 'User' }}</span>
+                        <span style="font-size: 24px; color: var(--text-muted);">Ready for your scan</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if not img_path and not regions %}
+            <!-- Upload State -->
+            <div style="text-align: center; margin-top: 20px;" class="glass-card">
+                <div style="width: 90px; height: 90px; background: var(--bg-dark); border: 1px solid var(--border-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                    <i data-lucide="camera" style="color: var(--primary); width: 45px; height: 45px;"></i>
+                </div>
+                <h2 style="font-size: 42px; margin-bottom: 12px;">Capture Oral Scan</h2>
+                <p style="color: var(--text-muted); font-size: 24px; margin-bottom: 32px; max-width: 450px; margin-left: auto; margin-right: auto;">Upload a clear image of the suspicious area for AI analysis.</p>
+                
+                <div id="scanner-container" style="position: relative; width: 100%; max-width: 600px; margin: 0 auto; border-radius: 20px; overflow: hidden; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                    <video id="camera_feed" autoplay playsinline style="width: 100%; height: 450px; object-fit: cover;"></video>
+                    
+                    <!-- Overlay Top Tracking -->
+                    <div style="position: absolute; top: 20px; left: 0; width: 100%; text-align: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10;">
+                        <span id="region_tracker" style="font-size: 26px; font-weight: 700;">Region 1 of 10</span>
+                    </div>
+
+
+                    <!-- Overlay Bottom Instruction -->
+                    <div style="position: absolute; bottom: 80px; left: 0; width: 100%; text-align: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10;">
+                        <h3 id="region_title" style="font-size: 32px; margin-bottom: 8px;">Photograph of Tongue</h3>
+                        <p id="region_desc" style="font-size: 20px; margin: 0; opacity: 0.9;">Stick out tongue fully</p>
+                    </div>
+
+                    <!-- Capture Button right aligned mimicking the provided designs -->
+                    <button id="capture_btn" style="position: absolute; top: 50%; right: 20px; transform: translateY(-50%); width: 70px; height: 70px; border-radius: 50%; background: white; border: 5px solid #ccc; cursor: pointer; z-index: 20; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.1s;"></button>
+
+                    <!-- Upload Button -->
+                    <label style="position: absolute; bottom: 20px; right: 20px; z-index: 20; cursor: pointer; background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 12px; backdrop-filter: blur(5px); color: white; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="upload" style="width: 20px; height: 20px;"></i> Upload
+                        <input type="file" id="upload_input" accept="image/*" style="display: none;">
+                    </label>
+                </div>
+
+                <div id="submit-modal" style="display: none; padding: 50px; text-align: center; background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-light); margin-top: 30px;">
+                    <h3 style="font-size: 42px; margin-bottom: 24px;">Screening Complete</h3>
+                    <p style="font-size: 26px; color: var(--text-muted); margin-bottom: 40px;">All 10 photos have been captured.</p>
+                    <form action="{{ url_for('dashboard') }}" method="POST" id="uploadForm">
+                        <div id="hidden-inputs-container"></div>
+                        <button type="button" class="btn-secondary" style="width: 45%; max-width: 200px; display: inline-block; margin-right: 16px;" onclick="window.location.reload()">Restart</button>
+                        <button type="submit" class="btn-primary" style="width: 45%; max-width: 250px; display: inline-block;">Submit</button>
+                    </form>
+                </div>
+                
+                <canvas id="snapshot_canvas" style="display: none;"></canvas>
+
+                <script>
+                    const regions = [
+                        { title: "Photograph your tongue", desc: "Show the top surface clearly" },
+                        { title: "Photograph UNDER YOUR tongue", desc: "Lift tongue and show underside" },
+                        { title: "Photograph LEFT TONGUE", desc: "Show left side of the tongue" },
+                        { title: "Photograph RIGHT TONGUE", desc: "Show the right side of the tongue" },
+                        { title: "Photograph LEFT INNER CHEEK", desc: "Show left cheek wall" },
+                        { title: "Photograph RIGHT INNER CHEEK", desc: "Show right cheek wall" },
+                        { title: "Photograph ABOVE TEETH", desc: "Show roof of mouth and hard palate" },
+                        { title: "Photograph BELOW TEETH", desc: "Show floor of mouth" },
+                        { title: "Photograph UVULA", desc: "Show back of throat area" },
+                        { title: "Photograph PALATE", desc: "Show roof of throat area" }
+                    ];
+
+                    let currentStage = 0;
+                    const imagesBase64 = [];
+                    
+                    const video = document.getElementById('camera_feed');
+                    const canvas = document.getElementById('snapshot_canvas');
+                    const captureBtn = document.getElementById('capture_btn');
+                    const uploadInput = document.getElementById('upload_input');
+                    
+                    // Init Camera with rear facing if possible
+                    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(stream) {
+                            video.srcObject = stream;
+                            video.play();
+                        }).catch(function(err) {
+                            console.warn("Camera could not be accessed. You can still use the Upload button.", err);
+                        });
+                    }
+
+                    captureBtn.addEventListener('mousedown', () => captureBtn.style.transform = 'translateY(-50%) scale(0.9)');
+                    captureBtn.addEventListener('mouseup', () => captureBtn.style.transform = 'translateY(-50%) scale(1)');
+
+                    function advanceStage(base64Data) {
+                        imagesBase64.push(base64Data);
+                        
+                        currentStage++;
+                        if(currentStage < 10) {
+                            document.getElementById('region_tracker').innerText = `Region ${currentStage + 1} of 10`;
+                            document.getElementById('region_title').innerText = regions[currentStage].title;
+                            document.getElementById('region_desc').innerText = regions[currentStage].desc;
+
+                        } else {
+                            if(video.srcObject) {
+                                video.srcObject.getTracks().forEach(t => t.stop());
+                            }
+                            
+                            document.getElementById('scanner-container').style.display = 'none';
+                            document.getElementById('submit-modal').style.display = 'block';
+                            
+                            const container = document.getElementById('hidden-inputs-container');
+                            imagesBase64.forEach((b64, idx) => {
+                                const inp = document.createElement('input');
+                                inp.type = 'hidden';
+                                inp.name = `image${idx}`;
+                                inp.value = b64;
+                                container.appendChild(inp);
+                            });
+                        }
+                        lucide.createIcons();
+                    }
+
+                    captureBtn.addEventListener('click', () => {
+                        // Add flash effect
+                        const flash = document.createElement('div');
+                        flash.style.position = 'absolute';
+                        flash.style.top = 0; flash.style.left = 0; flash.style.width = '100%'; flash.style.height = '100%';
+                        flash.style.backgroundColor = 'white'; flash.style.zIndex = 100;
+                        document.getElementById('scanner-container').appendChild(flash);
+                        setTimeout(() => flash.remove(), 100);
+
+                        // Capture canvas
+                        canvas.width = video.videoWidth || 640;
+                        canvas.height = video.videoHeight || 480;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        
+                        // Compress aggressively to prevent huge payload blocking
+                        const base64Data = canvas.toDataURL('image/jpeg', 0.5);
+                        advanceStage(base64Data);
+                    });
+
+                    uploadInput.addEventListener('change', (e) => {
+                        if(e.target.files && e.target.files[0]) {
+                            const reader = new FileReader();
+                            reader.onload = function(event) {
+                                const img = new Image();
+                                img.onload = function() {
+                                    // Scale down if image is huge
+                                    let w = img.width;
+                                    let h = img.height;
+                                    if (w > 1200) { h = h * (1200 / w); w = 1200; }
+                                    canvas.width = w;
+                                    canvas.height = h;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0, w, h);
+                                    
+                                    const base64Data = canvas.toDataURL('image/jpeg', 0.5);
+                                    advanceStage(base64Data);
+                                    uploadInput.value = ''; // Reset for next region if needed
+                                };
+                                img.src = event.target.result;
+                            };
+                            reader.readAsDataURL(e.target.files[0]);
+                        }
+                    });
+                </script>
+            </div>
+            {% else %}
+            <!-- Result State -->
+            <div class="page-transition">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <h2 style="font-size: 48px; margin-bottom: 16px;">AI Analysis Complete</h2>
+                    <span style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 8px 20px; border-radius: 24px; font-size: 22px; color: var(--text-main); font-weight: 700;">Overall Case: <span style="color: {{ overall.color }};">{{ overall.result }} ({{ overall.risk }} Risk)</span></span>
+                </div>
+
+                <h3 style="font-size: 32px; margin-bottom: 24px; border-left: 5px solid var(--primary); padding-left: 15px;">Regional Breakdown (10 Scans)</h3>
+
+                <div class="regions-container" style="display: grid; gap: 32px; margin-bottom: 40px;">
+                    {% for region in regions %}
+                    <div class="glass-card" style="padding: 0; overflow: hidden; display: grid; grid-template-columns: 1fr 1.2fr; align-items: stretch; border: 1px solid var(--border-light); background: rgba(10,10,10,0.4);">
+                        <!-- Heatmap Section -->
+                        <div style="position: relative; height: 100%; border-right: 1px solid var(--border-light);">
+                            {% if region.heatmap %}
+                            <img src="{{ url_for('uploaded_file', filename=region.heatmap) }}" style="width: 100%; height: 100%; min-height: 350px; object-fit: cover;">
+                            <div style="position: absolute; top: 12px; left: 12px; background: {{ region.color }}; color: black; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">REGION {{ region.index }}</div>
+                            <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 20px 15px; color: white; font-size: 14px; font-weight: 600;">
+                                <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="zap" style="width: 14px; height: 14px; color: #fbbf24;"></i> AI Cancer Focus Highlights</span>
+                            </div>
+                            {% else %}
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #111;">
+                                <span style="color: var(--text-muted);">Heatmap Error</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Data & Graph Section -->
+                        <div style="padding: 30px; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <span style="font-size: 15px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px;">Regional Status</span>
+                                    <div style="font-size: 36px; font-weight: 900; color: {{ region.color }}; line-height: 1;">{{ region.result }}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="font-size: 15px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px;">Risk Level</span>
+                                    <div style="background: {{ region.color }}; color: black; padding: 4px 16px; border-radius: 8px; font-weight: 800; font-size: 18px; display: inline-block;">{{ region.risk }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Integrated "Graphs" -->
+                            <div style="display: grid; gap: 20px;">
+                                <!-- Threshold Graph -->
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-size: 16px; color: var(--text-muted); font-weight: 700;">Detection Threshold</span>
+                                        <span style="font-size: 18px; font-weight: 800; color: var(--text-main);">{{ region.threshold }}%</span>
+                                    </div>
+                                    <div class="progress-bar" style="height: 12px; background: rgba(255,255,255,0.05);">
+                                        <div class="progress-fill" style="width: {{ region.threshold }}%; background: linear-gradient(to right, #6366f1, #a855f7);"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Confidence Graph -->
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-size: 16px; color: var(--text-muted); font-weight: 700;">AI Confidence</span>
+                                        <span style="font-size: 18px; font-weight: 800; color: var(--text-main);">{{ region.confidence }}%</span>
+                                    </div>
+                                    <div class="progress-bar" style="height: 12px; background: rgba(255,255,255,0.05);">
+                                        <div class="progress-fill" style="width: {{ region.confidence }}%; background: {{ region.color }}; box-shadow: 0 0 15px {{ region.color }}44;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="font-size: 14px; color: var(--text-muted); font-style: italic; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                                <i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 
+                                Analysis focused on vascular patterns and lesion symmetry in Region {{ region.index }}.
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div style="margin-top: 40px; display: flex; gap: 20px; flex-wrap: wrap;">
+                    {% if report_id %}
+                    <a href="{{ url_for('download_report', report_id=report_id) }}" target="_blank" class="btn-primary" style="flex: 1; text-decoration: none; text-align: center; min-width: 250px; background: linear-gradient(135deg, #10b981, #059669);">Download Detailed Report</a>
+                    {% endif %}
+                    <a href="{{ url_for('form_steps') }}" class="btn-primary" style="flex: 1; text-decoration: none; text-align: center; min-width: 200px;">New Assessment</a>
+                    <a href="{{ url_for('history') }}" class="btn-secondary" style="flex: 1; text-decoration: none; text-align: center; min-width: 200px;">View History</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Mobile Bottom Navigation -->
+        <div class="bottom-nav">
+            <a href="{{ url_for('dashboard') }}" class="nav-item active">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ url_for('form_steps') }}" class="nav-item">
+                <i data-lucide="plus-square"></i>
+                <span>Assess</span>
+            </a>
+            <a href="{{ url_for('history') }}" class="nav-item">
+                <i data-lucide="history"></i>
+                <span>History</span>
+            </a>
+        </div>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
